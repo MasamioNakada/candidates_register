@@ -1,4 +1,3 @@
-import os
 import re
 import requests
 
@@ -15,8 +14,6 @@ def validate_email(email:str):
     else:
         return False
 
-gender_options = ("Male", "Female", "39 tipos de Gay")
-
 spanish = {
     "general_information":"Información General",
     "available_positions":"Posiciones Disponibles",
@@ -27,6 +24,7 @@ spanish = {
     "gender_options":("Masculino", "Femenino", "Otros","Prefiero no decirlo"),
     "contact_information":"Información de Contacto",
     "email":"Email",
+    "country_code":"Código del Pais",
     "phone_number":"Número de celular",
     "enter_cv":"Ingrese su Cv",
     "cover_letter":"Carta de intención"
@@ -41,6 +39,7 @@ inglish = {
     "gender_options":("Male", "Female", "Others","I prefer not to say it"),
     "contact_information":"Contact Information",
     "email":"Email",
+    "country_code":"Country code",
     "phone_number":"Phone Number",
     "enter_cv":"Enter your Cv",
     "cover_letter":"Cover Letter"
@@ -60,7 +59,7 @@ def main():
 
     lenguaje = metadata.get("l","en")
 
-    form_id = metadata.get("id","default")
+    form_id = metadata.get("id",["0"])
 
     if lenguaje == ["es"]:
         leng = spanish
@@ -84,7 +83,7 @@ def main():
     st.write(form_info.get("description"))
 
     with st.form("my_form"):
-        if form_id == "default":
+        if form_id == ["0"]:
             global position
             positions = requests.get(f"{base_url}/candidates/positions").json()["positions"]
             clean_positions = []
@@ -93,19 +92,20 @@ def main():
                     clean_positions.append(pos["position"])
 
             st.subheader(f':blue[{leng["available_positions"]}]')
-            position = st.selectbox(
+            positionn = st.selectbox(
                 f'{leng["available_positions"]}',
                 clean_positions,
                 index=None,
                 placeholder="Choose the Position ..."
             )
+            
             for pos in positions:
-                if position == pos["position"]:
-                    form_id = form_id[0]
-
+                
+                if pos["position"] == positionn:
+                    form_id = [pos["id"]]
+            
         if form_id != "default":
-            position = "a"
-
+            position = ["1"]
         st.subheader(f':blue[{leng["general_information"]}]')
         first_name = st.text_input(leng["first_name"])
         middle_name = st.text_input(leng["middle_name"])
@@ -117,6 +117,7 @@ def main():
         st.divider()
         st.subheader(f':blue[{leng["contact_information"]}]')
         email = st.text_input(leng["email"])
+        country_code = st.text_input(leng["country_code"],placeholder="51",)
         phone_number = st.text_input(leng["phone_number"], placeholder="999999999")
 
         st.divider()
@@ -131,7 +132,8 @@ def main():
                 "Last Name":last_name,
                 "Email": email, 
                 "Phone Number":phone_number,
-                "Available Position":position
+                "Available Position":position,
+                "Country Code":country_code
             }
             error_r = []
 
@@ -169,12 +171,14 @@ def main():
                             "last_name":(None,last_name),
                             "gender":(None,gender),
                             "email":(None,email),
+                            "country_code":(None,country_code),
                             "phone_number":(None,phone_number),
                             "cv": (curriculum.name, curriculum.getvalue()),
                             "cover_letter":(None,cover_letter)
                         }
                     )
                 except Exception as e:
+                    print(e)
                     st.error("Error in the requests")
 
                 st.success("Your form has been uploaded")
